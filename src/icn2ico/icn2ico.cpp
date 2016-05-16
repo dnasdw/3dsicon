@@ -52,7 +52,7 @@ n32 decode(u8* pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* pDest, n32 a_nDestWi
 				pDest[(i * a_nSrcWidth + j) * 4] = (uRGB565 << 3 & 0xF8) | (uRGB565 >> 2 & 7);
 				pDest[(i * a_nSrcWidth + j) * 4 + 1] = (uRGB565 >> 3 & 0xFC) | (uRGB565 >> 9 & 3);
 				pDest[(i * a_nSrcWidth + j) * 4 + 2] = (uRGB565 >> 8 & 0xF8) | (uRGB565 >> 13 & 7);
-				pDest[(i * a_nSrcWidth + j) * 4 + 3] = 0;
+				pDest[(i * a_nSrcWidth + j) * 4 + 3] = 0xFF;
 			}
 		}
 	}
@@ -94,7 +94,7 @@ n32 decode(u8* pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* pDest, n32 a_nDestWi
 				pDest[(i * a_nDestWidth + j) * 4] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4];
 				pDest[(i * a_nDestWidth + j) * 4 + 1] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 1];
 				pDest[(i * a_nDestWidth + j) * 4 + 2] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 2];
-				pDest[(i * a_nDestWidth + j) * 4 + 3] = 0;
+				pDest[(i * a_nDestWidth + j) * 4 + 3] = 0xFF;
 			}
 		}
 		delete pPVRTexture;

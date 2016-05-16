@@ -53,6 +53,7 @@ struct BITMAPINFOHEADER{
 	u32 biClrUsed;
 	u32 biClrImportant;
 } GNUC_PACKED;
+#define BI_RGB 0L
 #endif
 
 #define DNA_ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
