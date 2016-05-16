@@ -21,8 +21,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-using namespace std;
-
 typedef int8_t n8;
 typedef int16_t n16;
 typedef int32_t n32;
