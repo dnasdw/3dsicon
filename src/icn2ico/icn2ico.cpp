@@ -1,39 +1,7 @@
-#include <Windows.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <string.h>
+#include "icn2ico.h"
+#include <PVRTextureUtilities.h>
 
-typedef int8_t n8;
-typedef int16_t n16;
-typedef int32_t n32;
-typedef int64_t n64;
-typedef uint8_t u8;
-typedef uint16_t u16;
-typedef uint32_t u32;
-typedef uint64_t u64;
-
-#include <pshpack1.h>
-struct IcoHeader
-{
-	u16 Reserved;
-	u16 Type;
-	u16 Count;
-};
-
-struct IcoInfo
-{
-	u8 Width;
-	u8 Height;
-	u8 Color;
-	u8 Reserved3[3];
-	u8 BitCount;
-	u8 Reserved7;
-	u32 Size;
-	u32 Offset;
-};
-#include <poppack.h>
-
-static const int decodeTransByte[64] =
+static const n32 s_nDecodeTransByte[64] =
 {
 	 0,  1,  4,  5, 16, 17, 20, 21,
 	 2,  3,  6,  7, 18, 19, 22, 23,
@@ -45,44 +13,94 @@ static const int decodeTransByte[64] =
 	42, 43, 46, 47, 58, 59, 62, 63
 };
 
-int decode(u8* buffer, int width, int height, u8* pixel)
+n32 decode(u8* pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* pDest, n32 a_nDestWidth, n32 a_nDestHeight)
 {
-	u8* temp = new u8[width * height * 2];
-	for (int i = 0; i < width * height / 64; i++)
+	u8* pTemp = new u8[a_nSrcWidth * a_nSrcHeight * 2];
+	for (u32 i = 0; i < a_nSrcWidth * a_nSrcHeight / DNA_ARRAY_COUNT(s_nDecodeTransByte); i++)
 	{
-		for (int j = 0; j < 64; j++)
+		for (u32 j = 0; j < DNA_ARRAY_COUNT(s_nDecodeTransByte); j++)
 		{
-			for (int k = 0; k < 2; k++)
+			for (n32 k = 0; k < 2; k++)
 			{
-				temp[(i * 64 + j) * 2 + k] = buffer[(i * 64 + decodeTransByte[j]) * 2 + k];
+				pTemp[(i * DNA_ARRAY_COUNT(s_nDecodeTransByte) + j) * 2 + k] = pSrc[(i * DNA_ARRAY_COUNT(s_nDecodeTransByte) + s_nDecodeTransByte[j]) * 2 + k];
 			}
 		}
 	}
-	u8* rgba = new u8[width * height * 2];
-	for (int i = 0; i < height; i++)
+	u8* pRGB565 = new u8[a_nSrcWidth * a_nSrcHeight * 2];
+	n32 nInnerWidth = 8;
+	n32 nInnerHeight = 8;
+	n32 nOuterWidth = a_nSrcWidth / nInnerWidth;
+	n32 nOuterHeight = a_nSrcHeight / nInnerHeight;
+	for (n32 i = 0; i < a_nSrcHeight; i++)
 	{
-		for (int j = 0; j < width; j++)
+		for (n32 j = 0; j < a_nSrcWidth; j++)
 		{
-			for (int k = 0; k < 2; k++)
+			for (n32 k = 0; k < 2; k++)
 			{
-				rgba[(i * width + j) * 2 + k] = temp[(((i / 8) * (width / 8) + j / 8) * 64 + i % 8 * 8 + j % 8) * 2 + k];
+				pRGB565[(i * nInnerWidth * nOuterWidth + j) * 2 + k] = pTemp[(((i / nInnerHeight) * nOuterWidth + j / nInnerWidth) * (nInnerWidth * nInnerHeight) + i % nInnerHeight * nInnerWidth + j % nInnerWidth) * 2 + k];
 			}
 		}
 	}
-	delete[] temp;
-	for (int i = 0; i < height; i++)
+	delete[] pTemp;
+	if (a_nDestWidth == a_nSrcWidth && a_nDestHeight == a_nSrcHeight)
 	{
-		for (int j = 0; j < width; j++)
+		for (n32 i = 0; i < a_nSrcHeight; i++)
 		{
-			u16 rgb565 = *reinterpret_cast<u16*>(rgba + ((height - 1 - i) * width + j) * 2);
-			pixel[(i * width + j) * 4] = (rgb565 << 3 & 0xF8) | (rgb565 >> 2 & 7);
-			pixel[(i * width + j) * 4 + 1] = (rgb565 >> 3 & 0xFC) | (rgb565 >> 9 & 3);
-			pixel[(i * width + j) * 4 + 2] = (rgb565 >> 8 & 0xF8) | (rgb565 >> 13 & 7);
-			pixel[(i * width + j) * 4 + 3] = 0;
+			for (n32 j = 0; j < a_nSrcWidth; j++)
+			{
+				u16 uRGB565 = *reinterpret_cast<u16*>(pRGB565 + ((a_nSrcHeight - 1 - i) * a_nSrcWidth + j) * 2);
+				pDest[(i * a_nSrcWidth + j) * 4] = (uRGB565 << 3 & 0xF8) | (uRGB565 >> 2 & 7);
+				pDest[(i * a_nSrcWidth + j) * 4 + 1] = (uRGB565 >> 3 & 0xFC) | (uRGB565 >> 9 & 3);
+				pDest[(i * a_nSrcWidth + j) * 4 + 2] = (uRGB565 >> 8 & 0xF8) | (uRGB565 >> 13 & 7);
+				pDest[(i * a_nSrcWidth + j) * 4 + 3] = 0;
+			}
 		}
 	}
-	memset(pixel + width * height * 4, 0, ((width + 7) / 8 + 3) / 4 * 4 * height);
-	delete[] rgba;
+	else
+	{
+		pTemp = new u8[a_nSrcWidth * a_nSrcHeight * 4];
+		for (n32 i = 0; i < a_nSrcHeight; i++)
+		{
+			for (n32 j = 0; j < a_nSrcWidth; j++)
+			{
+				u16 uRGB565 = *reinterpret_cast<u16*>(pRGB565 + (i * a_nSrcWidth + j) * 2);
+				pTemp[(i * a_nSrcWidth + j) * 4] = (uRGB565 << 3 & 0xF8) | (uRGB565 >> 2 & 7);
+				pTemp[(i * a_nSrcWidth + j) * 4 + 1] = (uRGB565 >> 3 & 0xFC) | (uRGB565 >> 9 & 3);
+				pTemp[(i * a_nSrcWidth + j) * 4 + 2] = (uRGB565 >> 8 & 0xF8) | (uRGB565 >> 13 & 7);
+				pTemp[(i * a_nSrcWidth + j) * 4 + 3] = 0xFF;
+			}
+		}
+		PVRTextureHeaderV3 pvrTextureHeaderV3;
+		pvrTextureHeaderV3.u64PixelFormat = pvrtexture::PixelType('r', 'g', 'b', 'a', 8, 8, 8, 8).PixelTypeID;
+		pvrTextureHeaderV3.u32Height = a_nSrcHeight;
+		pvrTextureHeaderV3.u32Width = a_nSrcWidth;
+		MetaDataBlock metaDataBlock;
+		metaDataBlock.DevFOURCC = PVRTEX3_IDENT;
+		metaDataBlock.u32Key = ePVRTMetaDataTextureOrientation;
+		metaDataBlock.u32DataSize = 3;
+		metaDataBlock.Data = new PVRTuint8[metaDataBlock.u32DataSize];
+		metaDataBlock.Data[0] = ePVRTOrientRight;
+		metaDataBlock.Data[1] = ePVRTOrientUp;
+		metaDataBlock.Data[2] = ePVRTOrientIn;
+		pvrtexture::CPVRTextureHeader pvrTextureHeader(pvrTextureHeaderV3, 1, &metaDataBlock);
+		pvrtexture::CPVRTexture* pPVRTexture = new pvrtexture::CPVRTexture(pvrTextureHeader, pTemp);
+		delete[] pTemp;
+		pvrtexture::Resize(*pPVRTexture, a_nDestWidth, a_nDestHeight, 1, pvrtexture::eResizeNearest);
+		pTemp = reinterpret_cast<u8*>(pPVRTexture->getDataPtr());
+		for (n32 i = 0; i < a_nDestHeight; i++)
+		{
+			for (n32 j = 0; j < a_nDestWidth; j++)
+			{
+				pDest[(i * a_nDestWidth + j) * 4] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4];
+				pDest[(i * a_nDestWidth + j) * 4 + 1] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 1];
+				pDest[(i * a_nDestWidth + j) * 4 + 2] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 2];
+				pDest[(i * a_nDestWidth + j) * 4 + 3] = 0;
+			}
+		}
+		delete pPVRTexture;
+	}
+	delete[] pRGB565;
+	memset(pDest + a_nDestWidth * a_nDestHeight * 4, 0, ((a_nDestWidth + 7) / 8 + 3) / 4 * 4 * a_nDestHeight);
 	return 0;
 }
 
@@ -98,39 +116,45 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	fseek(fp, 0, SEEK_END);
-	int icnSize = ftell(fp);
+	n32 nIcnSize = static_cast<n32>(ftell(fp));
 	fseek(fp, 0, SEEK_SET);
-	u8* icn = new u8[icnSize];
-	fread(icn, 1, icnSize, fp);
+	u8* pIcn = new u8[nIcnSize];
+	fread(pIcn, 1, nIcnSize, fp);
 	fclose(fp);
-	u8* icon[2] = { icn + 0x24C0, icn + 0x2040 };
+	u8* pCtpk[2] = { pIcn + 0x24C0, pIcn + 0x2040 };
+	const n32 nCount = 3;
+	n32 nSize[nCount] = { 256, 48, 24 };
 	fp = fopen(argv[2], "wb");
-	IcoHeader icoHeader;
+	SIcoHeader icoHeader;
 	icoHeader.Reserved = 0;
 	icoHeader.Type = 1;
-	icoHeader.Count = 2;
+	icoHeader.Count = nCount;
 	fwrite(&icoHeader, sizeof(icoHeader), 1, fp);
-	IcoInfo icoInfo[2];
+	SIcoInfo icoInfo[nCount];
 	memset(icoInfo, 0, sizeof(icoInfo));
-	icoInfo[0].Width = 48;
-	icoInfo[0].Height = 48;
-	icoInfo[0].Reserved3[1] = 1;
-	icoInfo[0].BitCount = 32;
-	icoInfo[0].Size = sizeof(BITMAPINFOHEADER) + icoInfo[0].Width * icoInfo[0].Height * icoInfo[0].BitCount / 8 + ((icoInfo[0].Width + 7) / 8 + 3) / 4 * 4 * icoInfo[0].Height;
-	icoInfo[0].Offset = sizeof(icoHeader) + sizeof(icoInfo);
-	icoInfo[1].Width = 24;
-	icoInfo[1].Height = 24;
-	icoInfo[1].Reserved3[1] = 1;
-	icoInfo[1].BitCount = 32;
-	icoInfo[1].Size = sizeof(BITMAPINFOHEADER) + icoInfo[1].Width * icoInfo[1].Height * icoInfo[1].BitCount / 8 + ((icoInfo[1].Width + 7) / 8 + 3) / 4 * 4 * icoInfo[1].Height;
-	icoInfo[1].Offset = icoInfo[0].Offset + icoInfo[0].Size;
+	for (n32 i = 0; i < nCount; i++)
+	{
+		icoInfo[i].Width = nSize[i] & 0xFF;
+		icoInfo[i].Height = nSize[i] & 0xFF;
+		icoInfo[i].Reserved3[1] = 1;
+		icoInfo[i].BitCount = 32;
+		icoInfo[i].Size = sizeof(BITMAPINFOHEADER) + nSize[i] * nSize[i] * icoInfo[i].BitCount / 8 + ((nSize[i] + 7) / 8 + 3) / 4 * 4 * nSize[i];
+		if (i == 0)
+		{
+			icoInfo[i].Offset = sizeof(icoHeader) + sizeof(icoInfo);
+		}
+		else
+		{
+			icoInfo[i].Offset = icoInfo[i - 1].Offset + icoInfo[i - 1].Size;
+		}
+	}
 	fwrite(icoInfo, sizeof(icoInfo), 1, fp);
-	BITMAPINFOHEADER bitmapInfoHeader[2];
-	for (int i = 0; i < 2; i++)
+	BITMAPINFOHEADER bitmapInfoHeader[nCount];
+	for (n32 i = 0; i < nCount; i++)
 	{
 		bitmapInfoHeader[i].biSize = sizeof(bitmapInfoHeader[i]);
-		bitmapInfoHeader[i].biWidth = icoInfo[i].Width;
-		bitmapInfoHeader[i].biHeight = icoInfo[i].Height * 2;
+		bitmapInfoHeader[i].biWidth = nSize[i];
+		bitmapInfoHeader[i].biHeight = nSize[i] * 2;
 		bitmapInfoHeader[i].biPlanes = 1;
 		bitmapInfoHeader[i].biBitCount = icoInfo[i].BitCount;
 		bitmapInfoHeader[i].biCompression = BI_RGB;
@@ -139,13 +163,13 @@ int main(int argc, char* argv[])
 		bitmapInfoHeader[i].biYPelsPerMeter = 0;
 		bitmapInfoHeader[i].biClrUsed = 0;
 		bitmapInfoHeader[i].biClrImportant = 0;
-		u8* pixel = new u8[bitmapInfoHeader[i].biSizeImage];
+		u8* pBitmap = new u8[bitmapInfoHeader[i].biSizeImage];
 		fwrite(bitmapInfoHeader + i, sizeof(bitmapInfoHeader[i]), 1, fp);
-		decode(icon[i], icoInfo[i].Width, icoInfo[i].Height, pixel);
-		fwrite(pixel, 1, bitmapInfoHeader[i].biSizeImage, fp);
-		delete[] pixel;
+		decode(pCtpk[i <= 1 ? 0 : 1], nSize[i <= 1 ? 1 : 2], nSize[i <= 1 ? 1 : 2], pBitmap, nSize[i], nSize[i]);
+		fwrite(pBitmap, 1, bitmapInfoHeader[i].biSizeImage, fp);
+		delete[] pBitmap;
 	}
 	fclose(fp);
-	delete[] icn;
+	delete[] pIcn;
 	return 0;
 }
