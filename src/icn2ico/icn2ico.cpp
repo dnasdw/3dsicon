@@ -125,6 +125,11 @@ int main(int argc, char* argv[])
 	const n32 nCount = 3;
 	n32 nSize[nCount] = { 256, 48, 24 };
 	fp = fopen(argv[2], "wb");
+	if (fp == nullptr)
+	{
+		delete[] pIcn;
+		return 1;
+	}
 	SIcoHeader icoHeader;
 	icoHeader.Reserved = 0;
 	icoHeader.Type = 1;
