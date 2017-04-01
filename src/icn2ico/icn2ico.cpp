@@ -13,16 +13,16 @@ static const n32 s_nDecodeTransByte[64] =
 	42, 43, 46, 47, 58, 59, 62, 63
 };
 
-n32 decode(u8* pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* pDest, n32 a_nDestWidth, n32 a_nDestHeight)
+n32 decode(u8* a_pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* a_pDest, n32 a_nDestWidth, n32 a_nDestHeight)
 {
 	u8* pTemp = new u8[a_nSrcWidth * a_nSrcHeight * 2];
-	for (u32 i = 0; i < a_nSrcWidth * a_nSrcHeight / DNA_ARRAY_COUNT(s_nDecodeTransByte); i++)
+	for (u32 i = 0; i < a_nSrcWidth * a_nSrcHeight / SDW_ARRAY_COUNT(s_nDecodeTransByte); i++)
 	{
-		for (u32 j = 0; j < DNA_ARRAY_COUNT(s_nDecodeTransByte); j++)
+		for (u32 j = 0; j < SDW_ARRAY_COUNT(s_nDecodeTransByte); j++)
 		{
 			for (n32 k = 0; k < 2; k++)
 			{
-				pTemp[(i * DNA_ARRAY_COUNT(s_nDecodeTransByte) + j) * 2 + k] = pSrc[(i * DNA_ARRAY_COUNT(s_nDecodeTransByte) + s_nDecodeTransByte[j]) * 2 + k];
+				pTemp[(i * SDW_ARRAY_COUNT(s_nDecodeTransByte) + j) * 2 + k] = a_pSrc[(i * SDW_ARRAY_COUNT(s_nDecodeTransByte) + s_nDecodeTransByte[j]) * 2 + k];
 			}
 		}
 	}
@@ -49,10 +49,10 @@ n32 decode(u8* pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* pDest, n32 a_nDestWi
 			for (n32 j = 0; j < a_nSrcWidth; j++)
 			{
 				u16 uRGB565 = *reinterpret_cast<u16*>(pRGB565 + ((a_nSrcHeight - 1 - i) * a_nSrcWidth + j) * 2);
-				pDest[(i * a_nSrcWidth + j) * 4] = (uRGB565 << 3 & 0xF8) | (uRGB565 >> 2 & 7);
-				pDest[(i * a_nSrcWidth + j) * 4 + 1] = (uRGB565 >> 3 & 0xFC) | (uRGB565 >> 9 & 3);
-				pDest[(i * a_nSrcWidth + j) * 4 + 2] = (uRGB565 >> 8 & 0xF8) | (uRGB565 >> 13 & 7);
-				pDest[(i * a_nSrcWidth + j) * 4 + 3] = 0xFF;
+				a_pDest[(i * a_nSrcWidth + j) * 4] = (uRGB565 << 3 & 0xF8) | (uRGB565 >> 2 & 7);
+				a_pDest[(i * a_nSrcWidth + j) * 4 + 1] = (uRGB565 >> 3 & 0xFC) | (uRGB565 >> 9 & 3);
+				a_pDest[(i * a_nSrcWidth + j) * 4 + 2] = (uRGB565 >> 8 & 0xF8) | (uRGB565 >> 13 & 7);
+				a_pDest[(i * a_nSrcWidth + j) * 4 + 3] = 0xFF;
 			}
 		}
 	}
@@ -86,21 +86,21 @@ n32 decode(u8* pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* pDest, n32 a_nDestWi
 		pvrtexture::CPVRTexture* pPVRTexture = new pvrtexture::CPVRTexture(pvrTextureHeader, pTemp);
 		delete[] pTemp;
 		pvrtexture::Resize(*pPVRTexture, a_nDestWidth, a_nDestHeight, 1, pvrtexture::eResizeNearest);
-		pTemp = reinterpret_cast<u8*>(pPVRTexture->getDataPtr());
+		pTemp = static_cast<u8*>(pPVRTexture->getDataPtr());
 		for (n32 i = 0; i < a_nDestHeight; i++)
 		{
 			for (n32 j = 0; j < a_nDestWidth; j++)
 			{
-				pDest[(i * a_nDestWidth + j) * 4] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4];
-				pDest[(i * a_nDestWidth + j) * 4 + 1] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 1];
-				pDest[(i * a_nDestWidth + j) * 4 + 2] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 2];
-				pDest[(i * a_nDestWidth + j) * 4 + 3] = 0xFF;
+				a_pDest[(i * a_nDestWidth + j) * 4] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4];
+				a_pDest[(i * a_nDestWidth + j) * 4 + 1] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 1];
+				a_pDest[(i * a_nDestWidth + j) * 4 + 2] = pTemp[((a_nDestHeight - 1 - i) * a_nDestWidth + j) * 4 + 2];
+				a_pDest[(i * a_nDestWidth + j) * 4 + 3] = 0xFF;
 			}
 		}
 		delete pPVRTexture;
 	}
 	delete[] pRGB565;
-	memset(pDest + a_nDestWidth * a_nDestHeight * 4, 0, ((a_nDestWidth + 7) / 8 + 3) / 4 * 4 * a_nDestHeight);
+	memset(a_pDest + a_nDestWidth * a_nDestHeight * 4, 0, ((a_nDestWidth + 7) / 8 + 3) / 4 * 4 * a_nDestHeight);
 	return 0;
 }
 
@@ -116,10 +116,10 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 	fseek(fp, 0, SEEK_END);
-	n32 nIcnSize = static_cast<n32>(ftell(fp));
+	u32 uIcnSize = ftell(fp);
 	fseek(fp, 0, SEEK_SET);
-	u8* pIcn = new u8[nIcnSize];
-	fread(pIcn, 1, nIcnSize, fp);
+	u8* pIcn = new u8[uIcnSize];
+	fread(pIcn, 1, uIcnSize, fp);
 	fclose(fp);
 	u8* pCtpk[2] = { pIcn + 0x24C0, pIcn + 0x2040 };
 	const n32 nCount = 3;
@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
 	icoHeader.Reserved = 0;
 	icoHeader.Type = 1;
 	icoHeader.Count = nCount;
-	fwrite(&icoHeader, sizeof(icoHeader), 1, fp);
+	fwrite(&icoHeader, sizeof(SIcoHeader), 1, fp);
 	SIcoInfo icoInfo[nCount];
 	memset(icoInfo, 0, sizeof(icoInfo));
 	for (n32 i = 0; i < nCount; i++)
