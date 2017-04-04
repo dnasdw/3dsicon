@@ -93,13 +93,13 @@ n32 decode(u8* a_pSrc, n32 a_nSrcWidth, n32 a_nSrcHeight, u8* a_pDest, n32 a_nDe
 	return 0;
 }
 
-int main(int argc, char* argv[])
+int UMain(int argc, UChar* argv[])
 {
 	if (argc != 3)
 	{
 		return 1;
 	}
-	FILE* fp = fopen(argv[1], "rb");
+	FILE* fp = UFopen(argv[1], USTR("rb"), false);
 	if (fp == nullptr)
 	{
 		return 1;
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
 	u8* pCtpk[2] = { pIcn + 0x24C0, pIcn + 0x2040 };
 	const n32 nCount = 3;
 	n32 nSize[nCount] = { 256, 48, 24 };
-	fp = fopen(argv[2], "wb");
+	fp = UFopen(argv[2], USTR("wb"), false);
 	if (fp == nullptr)
 	{
 		delete[] pIcn;
