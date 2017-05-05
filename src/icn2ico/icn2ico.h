@@ -22,27 +22,6 @@ struct SIcoInfo
 	u32 Size;
 	u32 Offset;
 } SDW_GNUC_PACKED;
-
-#if SDW_PLATFORM != SDW_PLATFORM_WINDOWS
-struct BITMAPINFOHEADER
-{
-	u32 biSize;
-	n32 biWidth;
-	n32 biHeight;
-	u16 biPlanes;
-	u16 biBitCount;
-	u32 biCompression;
-	u32 biSizeImage;
-	n32 biXPelsPerMeter;
-	n32 biYPelsPerMeter;
-	u32 biClrUsed;
-	u32 biClrImportant;
-} SDW_GNUC_PACKED;
-#endif
 #include SDW_MSC_POP_PACKED
-
-#ifndef BI_RGB
-#define BI_RGB 0L
-#endif
 
 #endif	// ICN2ICO_ICN2ICO_H_
